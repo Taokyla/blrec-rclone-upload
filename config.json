@@ -1,0 +1,9 @@
+{
+    "docker": "/rec",
+    "source": "/home/ubuntu/record",
+    "des": "onedrive:record",
+    "api": {
+        "host": "127.0.0.1",
+        "port": 3000
+    }
+}

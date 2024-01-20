@@ -3,6 +3,7 @@ import json
 import os
 from datetime import datetime
 from enum import IntEnum
+from functools import cached_property
 from pathlib import Path
 from typing import List, Dict, Any
 from uuid import UUID
@@ -74,9 +75,22 @@ class RoomInfo(BaseModel):
     description: str
 
 
-config = json.load(Path('config.json').open(encoding="utf8"))
+class Config(BaseModel):
+    class Api(BaseModel):
+        host: str
+        port: int | str
 
-RELATIVE_PATH_SLICE = len(config["docker"]) if "docker" in config else len(config["source"])
+    docker: str | None
+    source: str
+    des: str
+    api: Api
+
+    @cached_property
+    def RELATIVE_PATH_SLICE(self) -> int:
+        return len(self.docker) if self.docker is not None else len(self.source)
+
+
+config = Config(**json.load(Path('config.json').open(encoding="utf8")))
 
 
 @api.post('/rec')
@@ -86,40 +100,33 @@ async def rec(event: Event):
         room_info = RoomInfo(**event.data['room_info'])
         logger.info(f"房间号 {room_info.room_id} 录制完成,标题 {room_info.title}")
     elif event.type == 'VideoPostprocessingCompletedEvent':
-        relative_path = event.data['path'][RELATIVE_PATH_SLICE:]
-        file_real_path = config["source"] + relative_path
+        relative_path = event.data['path'][config.RELATIVE_PATH_SLICE:]
+        file_real_path = config.source + relative_path
         image_path = file_real_path[:-4] + '.jpg'
         if os.path.exists(image_path):
-            des = config["des"] + relative_path[:-4] + '.jpg'
-            # cmd = f'rclone moveto {image_path @ escape} {des @ escape}'
+            des = config.des + relative_path[:-4] + '.jpg'
             await asyncio.create_subprocess_exec("rclone", "moveto", image_path, des)
         else:
             image_path = file_real_path[:-4] + '.png'
             if os.path.exists(image_path):
-                des = config["des"] + relative_path[:-4] + '.png'
-                # cmd = f'rclone moveto {image_path @ escape} {des @ escape}'
-                # await asyncio.subprocess.create_subprocess_shell(cmd)
+                des = config.des + relative_path[:-4] + '.png'
                 await asyncio.create_subprocess_exec("rclone", "moveto", image_path, des)
         if os.path.exists(file_real_path):
-            des = config["des"] + relative_path
-            # cmd = f'rclone moveto {file_real_path @ escape} {des @ escape}'
-            # await asyncio.subprocess.create_subprocess_shell(cmd)
+            des = config.des + relative_path
             await asyncio.create_subprocess_exec("rclone", "moveto", file_real_path, des)
     elif event.type == 'DanmakuFileCompletedEvent':
-        relative_path = event.data['path'][RELATIVE_PATH_SLICE:]
-        file_real_path = config["source"] + relative_path
+        relative_path = event.data['path'][config.RELATIVE_PATH_SLICE:]
+        file_real_path = config.source + relative_path
         if os.path.exists(file_real_path):
-            des = config["des"] + relative_path
-            # cmd = f'rclone moveto {file_real_path @ escape} {des @ escape}'
-            # await asyncio.subprocess.create_subprocess_shell(cmd)
+            des = config.des + relative_path
             await asyncio.create_subprocess_exec("rclone", "moveto", file_real_path, des)
     elif event.type == 'SpaceNoEnoughEvent':
         data = json.dumps(event.data, ensure_ascii=False)
         logger.error(f"空间不足:{data}")
     else:
-        logger.info(event.json())
+        logger.info(event.model_dump_json())
     return {"code": 0}
 
 
 if __name__ == '__main__':
-    uvicorn.run("main:api", **config["api"])
+    uvicorn.run("main:api", **config.api.model_dump())

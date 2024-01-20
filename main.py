@@ -91,25 +91,28 @@ async def rec(event: Event):
         image_path = file_real_path[:-4] + '.jpg'
         if os.path.exists(image_path):
             des = config["des"] + relative_path[:-4] + '.jpg'
-            cmd = f'rclone moveto {image_path @ escape} {des @ escape}'
-            await asyncio.subprocess.create_subprocess_shell(cmd)
+            # cmd = f'rclone moveto {image_path @ escape} {des @ escape}'
+            await asyncio.create_subprocess_exec("rclone", "moveto", image_path, des)
         else:
             image_path = file_real_path[:-4] + '.png'
             if os.path.exists(image_path):
                 des = config["des"] + relative_path[:-4] + '.png'
-                cmd = f'rclone moveto {image_path @ escape} {des @ escape}'
-                await asyncio.subprocess.create_subprocess_shell(cmd)
+                # cmd = f'rclone moveto {image_path @ escape} {des @ escape}'
+                # await asyncio.subprocess.create_subprocess_shell(cmd)
+                await asyncio.create_subprocess_exec("rclone", "moveto", image_path, des)
         if os.path.exists(file_real_path):
             des = config["des"] + relative_path
-            cmd = f'rclone moveto {file_real_path @ escape} {des @ escape}'
-            await asyncio.subprocess.create_subprocess_shell(cmd)
+            # cmd = f'rclone moveto {file_real_path @ escape} {des @ escape}'
+            # await asyncio.subprocess.create_subprocess_shell(cmd)
+            await asyncio.create_subprocess_exec("rclone", "moveto", file_real_path, des)
     elif event.type == 'DanmakuFileCompletedEvent':
         relative_path = event.data['path'][RELATIVE_PATH_SLICE:]
         file_real_path = config["source"] + relative_path
         if os.path.exists(file_real_path):
             des = config["des"] + relative_path
-            cmd = f'rclone moveto {file_real_path @ escape} {des @ escape}'
-            await asyncio.subprocess.create_subprocess_shell(cmd)
+            # cmd = f'rclone moveto {file_real_path @ escape} {des @ escape}'
+            # await asyncio.subprocess.create_subprocess_shell(cmd)
+            await asyncio.create_subprocess_exec("rclone", "moveto", file_real_path, des)
     elif event.type == 'SpaceNoEnoughEvent':
         data = json.dumps(event.data, ensure_ascii=False)
         logger.error(f"空间不足:{data}")

@@ -26,8 +26,6 @@ ENV POETRY_VERSION=1.8.2
 RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=${POETRY_HOME} python3 - --version ${POETRY_VERSION} && \
     chmod a+x /opt/poetry/bin/poetry
 
-RUN ls -la
-
 WORKDIR /app
 
 COPY ./poetry.lock ./pyproject.toml ./

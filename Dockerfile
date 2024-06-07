@@ -38,7 +38,9 @@ COPY . .
 ENV RECORD_REPLACE_DIR=/rec
 ENV RECORD_SOURCE_DIR=/rec
 ENV RECORD_DESTINATION_DIR=onedrive:record
+ENV XDG_CONFIG_HOME=/config
 ENV TZ="Asia/Shanghai"
+
 
 EXPOSE 8000
 ENTRYPOINT ["poetry", "run", "uvicorn", "--reload", "--host=0.0.0.0", "--port=8000", "app.main:app"]

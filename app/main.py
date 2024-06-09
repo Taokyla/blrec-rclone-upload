@@ -47,35 +47,45 @@ REPLACE_DIR = os.getenv("RECORD_REPLACE_DIR", "/rec")
 RELATIVE_PATH_SLICE = len(REPLACE_DIR)
 SOURCE_DIR = os.getenv("RECORD_SOURCE_DIR", REPLACE_DIR)
 DESTINATION_DIR = os.getenv("RECORD_DESTINATION_DIR", "onedrive:record")
+KEEP_SOURCE = os.getenv("RECORD_KEEP_SOURCE", "False")
+if KEEP_SOURCE.lower() == "true":
+    KEEP_SOURCE = True
+else:
+    KEEP_SOURCE = False
+
+
+async def upload_file(path: str, keep_source=False):
+    relative_path = path[RELATIVE_PATH_SLICE:]
+    file_real_path = SOURCE_DIR + relative_path
+    if os.path.exists(file_real_path):
+        await asyncio.create_subprocess_exec("rclone", "copyto" if keep_source else "moveto",
+                                             file_real_path,
+                                             DESTINATION_DIR + relative_path)
+        return True
+    return False
 
 
 @app.post("/rec")
 async def rec(event: Event):
     logger.info(f"receive {event.type}")
-    if event.type in {"RecordingFinishedEvent", "RecordingCancelledEvent"}:
+    if event.type in {
+        "CoverImageDownloadedEvent",
+        "RawDanmakuFileCompletedEvent",
+        "DanmakuFileCompletedEvent",
+        "VideoPostprocessingCompletedEvent"
+    }:
+        path = event.data["path"]
+        logger.info(f"文件写入完成 {path}")
+    elif event.type == "PostprocessingCompletedEvent":
+        files = event.data["files"]
+        for path in files:
+            await upload_file(path, keep_source=KEEP_SOURCE)
+    elif event.type == "RecordingStartedEvent":
+        room_info = RoomInfo(**event.data["room_info"])
+        logger.info(f"房间号 {room_info.room_id} 开始录制,标题 {room_info.title}")
+    elif event.type in {"RecordingFinishedEvent", "RecordingCancelledEvent"}:
         room_info = RoomInfo(**event.data["room_info"])
         logger.info(f"房间号 {room_info.room_id} 录制完成,标题 {room_info.title}")
-    elif event.type == "VideoPostprocessingCompletedEvent":
-        relative_path = event.data["path"][RELATIVE_PATH_SLICE:]
-        file_real_path = SOURCE_DIR + relative_path
-        image_path = file_real_path[:-4] + ".jpg"
-        if os.path.exists(image_path):
-            des = DESTINATION_DIR + relative_path[:-4] + ".jpg"
-            await asyncio.create_subprocess_exec("rclone", "moveto", image_path, des)
-        else:
-            image_path = file_real_path[:-4] + ".png"
-            if os.path.exists(image_path):
-                des = DESTINATION_DIR + relative_path[:-4] + ".png"
-                await asyncio.create_subprocess_exec("rclone", "moveto", image_path, des)
-        if os.path.exists(file_real_path):
-            des = DESTINATION_DIR + relative_path
-            await asyncio.create_subprocess_exec("rclone", "moveto", file_real_path, des)
-    elif event.type == "DanmakuFileCompletedEvent":
-        relative_path = event.data["path"][RELATIVE_PATH_SLICE:]
-        file_real_path = SOURCE_DIR + relative_path
-        if os.path.exists(file_real_path):
-            des = DESTINATION_DIR + relative_path
-            await asyncio.create_subprocess_exec("rclone", "moveto", file_real_path, des)
     elif event.type == "SpaceNoEnoughEvent":
         data = json.dumps(event.data, ensure_ascii=False)
         logger.error(f"空间不足:{data}")

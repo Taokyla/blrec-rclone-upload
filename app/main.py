@@ -35,7 +35,7 @@ class RoomInfo(BaseModel):
     parent_area_id: int
     parent_area_name: str
     live_status: LiveStatus
-    live_start_time: int  # A integer in seconds
+    live_start_time: int  # An integer in seconds
     online: int
     title: str
     cover: str

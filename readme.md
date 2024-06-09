@@ -13,6 +13,8 @@ services:
       # 当前docker的映射路径
       - RECORD_DESTINATION_DIR=onedrive:record 
       # rclone的远程推送路径
+      - RECORD_KEEP_SOURCE=False
+      # 是否保留源文件，改为true后，rclone使用copyto
     volumes:
       - '~/.config/rclone:/config/rclone'
       # rclone的配置文件

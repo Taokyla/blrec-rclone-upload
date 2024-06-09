@@ -28,3 +28,8 @@ services:
 ```bash
 docker compose up -d
 ```
+
+创建rclone配置
+```bash
+docker exec -it blrec-rclone-upload bash -c "rclone config"
+```

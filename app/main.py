@@ -55,6 +55,7 @@ else:
 
 
 async def upload_file(path: str, keep_source=False):
+    logger.info(f"上传文件 {path}")
     relative_path = path[RELATIVE_PATH_SLICE:]
     file_real_path = SOURCE_DIR + relative_path
     if os.path.exists(file_real_path):
